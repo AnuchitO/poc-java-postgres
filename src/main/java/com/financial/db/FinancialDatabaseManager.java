@@ -21,9 +21,9 @@ public class FinancialDatabaseManager implements AutoCloseable {
     private static final String DB_HOST = System.getenv("DB_HOST");
     private static final String DB_PORT = System.getenv("DB_PORT");
     private static final String DB_NAME = System.getenv("DB_NAME");
-    private static final String DB_URL = "jdbc:postgresql://" + 
-        (DB_HOST != null ? DB_HOST : "localhost") + ":" + 
-        (DB_PORT != null ? DB_PORT : "5432") + "/" + 
+    private static final String DB_URL = "jdbc:postgresql://" +
+        (DB_HOST != null ? DB_HOST : "localhost") + ":" +
+        (DB_PORT != null ? DB_PORT : "5432") + "/" +
         (DB_NAME != null ? DB_NAME : "financial_db");
     private static final String USER = System.getenv("DB_USER");
     private static final String PASS = System.getenv("DB_PASS");
@@ -83,6 +83,105 @@ public class FinancialDatabaseManager implements AutoCloseable {
     }
 
     /**
+     * Make a deposit to an account
+     * @param accountNumber Account number
+     * @param amount Amount to deposit
+     * @param description Transaction description
+     */
+    public void deposit(String accountNumber, BigDecimal amount, String description) {
+        try {
+            // Start transaction
+            getConnection().setAutoCommit(false);
+
+            // Update account balance
+            String updateSql = "UPDATE accounts SET balance = balance + ? WHERE account_number = ?";
+            try (PreparedStatement updateStmt = getConnection().prepareStatement(updateSql)) {
+                updateStmt.setBigDecimal(1, amount);
+                updateStmt.setString(2, accountNumber);
+                updateStmt.executeUpdate();
+            }
+
+            // Create transaction record
+            createTransaction(accountNumber, amount, "DEPOSIT", description);
+
+            // Commit transaction
+            getConnection().commit();
+            logger.info("Deposit of {} completed successfully for account {}", amount, accountNumber);
+        } catch (SQLException e) {
+            try {
+                getConnection().rollback();
+            } catch (SQLException ex) {
+                logger.error("Error rolling back transaction", ex);
+            }
+            logger.error("Error processing deposit", e);
+            throw new RuntimeException("Deposit failed", e);
+        } finally {
+            try {
+                getConnection().setAutoCommit(true);
+            } catch (SQLException e) {
+                logger.error("Error resetting auto-commit", e);
+            }
+        }
+    }
+
+    /**
+     * Withdraw money from an account
+     * @param accountNumber Account number
+     * @param amount Amount to withdraw
+     * @param description Transaction description
+     */
+    public void withdraw(String accountNumber, BigDecimal amount, String description) {
+        try {
+            // Start transaction
+            getConnection().setAutoCommit(false);
+
+            // Check if account exists and has sufficient balance
+            String checkSql = "SELECT balance FROM accounts WHERE account_number = ?";
+            try (PreparedStatement checkStmt = getConnection().prepareStatement(checkSql)) {
+                checkStmt.setString(1, accountNumber);
+                try (ResultSet rs = checkStmt.executeQuery()) {
+                    if (!rs.next()) {
+                        throw new RuntimeException("Account not found");
+                    }
+                    BigDecimal currentBalance = rs.getBigDecimal("balance");
+                    if (currentBalance.compareTo(amount) < 0) {
+                        throw new RuntimeException("Insufficient funds");
+                    }
+                }
+            }
+
+            // Update account balance
+            String updateSql = "UPDATE accounts SET balance = balance - ? WHERE account_number = ?";
+            try (PreparedStatement updateStmt = getConnection().prepareStatement(updateSql)) {
+                updateStmt.setBigDecimal(1, amount);
+                updateStmt.setString(2, accountNumber);
+                updateStmt.executeUpdate();
+            }
+
+            // Create transaction record
+            createTransaction(accountNumber, amount.negate(), "WITHDRAWAL", description);
+
+            // Commit transaction
+            getConnection().commit();
+            logger.info("Withdrawal of {} completed successfully for account {}", amount, accountNumber);
+        } catch (SQLException e) {
+            try {
+                getConnection().rollback();
+            } catch (SQLException ex) {
+                logger.error("Error rolling back transaction", ex);
+            }
+            logger.error("Error processing withdrawal", e);
+            throw new RuntimeException("Withdrawal failed", e);
+        } finally {
+            try {
+                getConnection().setAutoCommit(true);
+            } catch (SQLException e) {
+                logger.error("Error resetting auto-commit", e);
+            }
+        }
+    }
+
+    /**
      * Example of INNER JOIN between accounts and transactions tables
      * @return List of account-transaction pairs
      */
@@ -95,9 +194,9 @@ public class FinancialDatabaseManager implements AutoCloseable {
 
         try (PreparedStatement stmt = connection.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
-            
+
             List<AccountTransactionPair> results = new ArrayList<>();
-            
+
             while (rs.next()) {
                 AccountTransactionPair pair = new AccountTransactionPair(
                     new Account(
@@ -117,7 +216,7 @@ public class FinancialDatabaseManager implements AutoCloseable {
                 );
                 results.add(pair);
             }
-            
+
             return results;
         } catch (SQLException e) {
             logger.error("Error executing query", e);
@@ -142,9 +241,9 @@ public class FinancialDatabaseManager implements AutoCloseable {
 
         try (PreparedStatement stmt = connection.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
-            
+
             Map<String, Transaction> results = new HashMap<>();
-            
+
             while (rs.next()) {
                 String accountNumber = rs.getString("account_number");
                 Transaction transaction = new Transaction(
@@ -157,7 +256,7 @@ public class FinancialDatabaseManager implements AutoCloseable {
                 );
                 results.put(accountNumber, transaction);
             }
-            
+
             return results;
         } catch (SQLException e) {
             logger.error("Error executing query", e);
@@ -176,15 +275,15 @@ public class FinancialDatabaseManager implements AutoCloseable {
 
         try (PreparedStatement stmt = connection.prepareStatement(sql);
              ResultSet rs = stmt.executeQuery()) {
-            
+
             Map<String, BigDecimal> results = new HashMap<>();
-            
+
             while (rs.next()) {
                 String accountNumber = rs.getString("account_number");
                 BigDecimal totalAmount = rs.getBigDecimal("total_amount");
                 results.put(accountNumber, totalAmount);
             }
-            
+
             return results;
         } catch (SQLException e) {
             logger.error("Error executing query", e);

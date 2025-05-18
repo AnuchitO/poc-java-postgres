@@ -1,0 +1,76 @@
+# Java
+build/
+.gradle/
+*.class
+*.log
+*.jar
+*.war
+*.ear
+
+# IDE
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Gradle
+.gradle/
+!gradle/wrapper/gradle-wrapper.jar
+!gradle/wrapper/gradle-wrapper.properties
+
+# Docker
+.docker/
+*.log
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Database
+postgres_data/
+
+# Environment files
+.env
+*.env
+
+# Logs
+logs/
+*.log
+
+# Test
+coverage/
+
+# Temp files
+*.tmp
+*.swp
+*.swo
+
+# Local development
+local.properties
+.settings/
+
+# Unit test
+coverage-reports/
+coverage-reports.xml
+coverage-reports.html
+coverage-reports.json
+
+# JUnit
+junit-platform.properties
+
+# Maven
+.mvn/
+!mvnw
+!mvnw.cmd
+
+# Reports
+reports/
+
+# Build output
+build/
+out/
+
+# Dependencies
+lib/
+libs/

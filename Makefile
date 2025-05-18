@@ -1,5 +1,5 @@
 .PHONY: run 
-run: 
+run: stop start
 	DB_HOST=localhost DB_PORT=5432 DB_USER=postgres DB_PASS=postgres ./gradlew build && DB_HOST=localhost DB_PORT=5432 DB_USER=postgres DB_PASS=postgres java -jar build/libs/*.jar
 
 .PHONY: start

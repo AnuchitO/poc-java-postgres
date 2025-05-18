@@ -9,42 +9,40 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
-public class TransactionDAO {
+public class TransactionDAO extends FinancialDatabaseManager {
     private static final Logger logger = LoggerFactory.getLogger(TransactionDAO.class);
-    private final FinancialDatabaseManager dbManager;
 
-    public TransactionDAO(FinancialDatabaseManager dbManager) {
-        this.dbManager = dbManager;
+    public TransactionDAO() {
+        super();
     }
 
-    public void createTransaction(Transaction transaction) {
-        String sql = "INSERT INTO transactions (account_number, amount, type, timestamp, description) VALUES (?, ?, ?, ?, ?)";
-        try (Connection connection = dbManager.getConnection();
+    public void createTransaction(Transaction transaction) throws SQLException {
+        String sql = "INSERT INTO transactions (account_number, amount, type, description, timestamp) VALUES (?, ?, ?, ?, ?)";
+        try (Connection connection = getConnection();
              PreparedStatement stmt = connection.prepareStatement(sql)) {
             
             stmt.setString(1, transaction.getAccountNumber());
             stmt.setBigDecimal(2, transaction.getAmount());
             stmt.setString(3, transaction.getType().name());
-            stmt.setTimestamp(4, java.sql.Timestamp.valueOf(transaction.getTimestamp()));
-            stmt.setString(5, transaction.getDescription());
-            
+            stmt.setString(4, transaction.getDescription());
+            stmt.setTimestamp(5, Timestamp.valueOf(LocalDateTime.now()));
             stmt.executeUpdate();
-            logger.info("Transaction created successfully");
         } catch (SQLException e) {
-            logger.error("Failed to create transaction", e);
-            throw new RuntimeException("Failed to create transaction", e);
+            logger.error("Error creating transaction", e);
+            throw e;
         }
     }
 
-    public List<Transaction> getTransactionsByAccount(String accountNumber) {
+    public List<Transaction> getTransactionsByAccount(String accountNumber) throws SQLException {
         String sql = "SELECT * FROM transactions WHERE account_number = ? ORDER BY timestamp DESC";
         List<Transaction> transactions = new ArrayList<>();
         
-        try (Connection connection = dbManager.getConnection();
+        try (Connection connection = getConnection();
              PreparedStatement stmt = connection.prepareStatement(sql)) {
             
             stmt.setString(1, accountNumber);

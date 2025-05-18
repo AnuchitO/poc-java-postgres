@@ -15,6 +15,17 @@ public class Account {
         SAVINGS, CHECKING, CREDIT
     }
 
+    public Account() {
+        // Default constructor
+    }
+
+    public Account(Long id, String accountNumber, BigDecimal balance, String ownerName) {
+        this.id = id;
+        this.accountNumber = accountNumber;
+        this.balance = balance;
+        this.ownerName = ownerName;
+    }
+
     // Getters and Setters
     public Long getId() {
         return id;

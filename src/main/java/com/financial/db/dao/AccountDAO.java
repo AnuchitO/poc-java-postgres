@@ -9,39 +9,37 @@ import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
-public class AccountDAO {
+public class AccountDAO extends FinancialDatabaseManager {
     private static final Logger logger = LoggerFactory.getLogger(AccountDAO.class);
-    private final FinancialDatabaseManager dbManager;
 
-    public AccountDAO(FinancialDatabaseManager dbManager) {
-        this.dbManager = dbManager;
+    public AccountDAO() {
+        super();
     }
 
-    public void createAccount(Account account) {
-        String sql = "INSERT INTO accounts (account_number, balance, owner_name, created_at, type) VALUES (?, ?, ?, ?, ?)";
-        try (Connection connection = dbManager.getConnection();
+    public void createAccount(Account account) throws SQLException {
+        String sql = "INSERT INTO accounts (account_number, balance, owner_name, type, created_at) VALUES (?, ?, ?, ?, ?)";
+        try (Connection connection = getConnection();
              PreparedStatement stmt = connection.prepareStatement(sql)) {
             
             stmt.setString(1, account.getAccountNumber());
             stmt.setBigDecimal(2, account.getBalance());
             stmt.setString(3, account.getOwnerName());
-            stmt.setTimestamp(4, java.sql.Timestamp.valueOf(account.getCreatedAt()));
-            stmt.setString(5, account.getType().name());
-            
+            stmt.setString(4, account.getType().name());
+            stmt.setTimestamp(5, Timestamp.valueOf(LocalDateTime.now()));
             stmt.executeUpdate();
-            logger.info("Account created successfully");
         } catch (SQLException e) {
-            logger.error("Failed to create account", e);
-            throw new RuntimeException("Failed to create account", e);
+            logger.error("Error creating account", e);
+            throw e;
         }
     }
 
-    public Account getAccountByNumber(String accountNumber) {
+    public Account getAccountByNumber(String accountNumber) throws SQLException {
         String sql = "SELECT * FROM accounts WHERE account_number = ?";
         
-        try (Connection connection = dbManager.getConnection();
+        try (Connection connection = getConnection();
              PreparedStatement stmt = connection.prepareStatement(sql)) {
             
             stmt.setString(1, accountNumber);

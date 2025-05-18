@@ -15,6 +15,19 @@ public class Transaction {
         DEPOSIT, WITHDRAWAL, TRANSFER
     }
 
+    public Transaction() {
+        // Default constructor
+    }
+
+    public Transaction(Long id, String accountNumber, BigDecimal amount, TransactionType type, LocalDateTime timestamp, String description) {
+        this.id = id;
+        this.accountNumber = accountNumber;
+        this.amount = amount;
+        this.type = type;
+        this.timestamp = timestamp;
+        this.description = description;
+    }
+
     // Getters and Setters
     public Long getId() {
         return id;
